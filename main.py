@@ -1,41 +1,35 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr 25 12:24:06 2023
+from tensorflow import keras
+from tensorflow.keras import layers
+import numpy as np
 
-@author: aouyed
-"""
+def MyNet(input_shape):
+    inputs = keras.Input(shape=input_shape)
 
-import tensorflow as tf
+    # Define convolutional layers
+    x = layers.Conv3D(16, kernel_size=3, padding='same', activation='relu')(inputs)
+    x = layers.Conv3D(32, kernel_size=3, padding='same', activation='relu')(x)
+    x = layers.Conv3D(64, kernel_size=3, padding='same', activation='relu')(x)
 
-# Define the input layers
-input1 = tf.keras.layers.Input(shape=(None, None, None))
-input2 = tf.keras.layers.Input(shape=(None, None, None))
+    # Define upsampling layers
+    x = layers.UpSampling3D(size=2)(x)
 
-# Concatenate the two input layers along the channel dimension
-concatenated_inputs = tf.keras.layers.Concatenate(axis=-1)([input1, input2])
-breakpoint()
+    # Define final convolutional layers
+    x = layers.Conv3D(32, kernel_size=3, padding='same', activation='relu')(x)
+    x = layers.Conv3D(16, kernel_size=3, padding='same', activation='relu')(x)
+    outputs = layers.Conv3D(3, kernel_size=3, padding='same', activation='relu')(x)
 
-# Define the rest of the model
-x = tf.keras.layers.Conv3D(filters=32, kernel_size=(3, 3, 3), activation='relu')(concatenated_inputs)
-x = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x)
-x = tf.keras.layers.Conv3D(filters=64, kernel_size=(3, 3, 3), activation='relu')(x)
-x = tf.keras.layers.MaxPooling3D(pool_size=(2, 2, 2))(x)
-x = tf.keras.layers.Flatten()(x)
-x = tf.keras.layers.Dense(units=128, activation='relu')(x)
+    # Define model
+    model = keras.Model(inputs=inputs, outputs=outputs, name='MyNet')
+    return model
 
-# Define the output layers
-output1 = tf.keras.layers.Dense(units=64, activation='softmax')(x)
-output2 = tf.keras.layers.Dense(units=64, activation='softmax')(x)
-output3 = tf.keras.layers.Dense(units=64, activation='softmax')(x)
 
-# Define the model with inputs and outputs
-model = tf.keras.models.Model(inputs=[input1, input2], outputs=[output1, output2, output3])
+model = MyNet(input_shape=(32, 32, 32, 2))
 
-# Compile the model
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+# Create random input volume with 2 channels
+input_volume = np.random.randn(1, 32, 32, 32, 2)
 
-# Train the model
-model.fit(x=[input_data1, input_data2], y=[output_data1, output_data2, output_data3], epochs=10, batch_size=32)
+# Pass input volume through network
+output_volume = model.predict(input_volume)
+
+# Print output shape
+print(output_volume)
